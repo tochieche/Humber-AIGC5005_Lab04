@@ -7,7 +7,7 @@ The data comes from the [Open-Meteo Weather API](https://api.open-meteo.com/v1/f
 
 ## Setup
 python -m venv .venv
-source .venv/bin/activate 
+source .venv/bin/activate
 
 conda env create -f environment.yml
 conda activate lab3package
@@ -19,7 +19,8 @@ python main.py
 
 
 ## Test
-python -m unittest discover -s tests
+python -m unittest discover -s tests -v
+python -m pip check
 
 ## Example output
 The retrieved output sample json is as follows:
@@ -88,20 +89,154 @@ Sometimes the API can have missing or null values or values that aren't numbers.
 
 
 ## Design choices
-I used classes to separate concerns cleanly. The HourlyRecord validates its own inputs during __init__. 
 
-I used Inheritance and polymorphism in the Aggregation base class to allow new metrics to be added easily as subclasses without modifying core processing code.
+   ### Why I used object-oriented programming
 
-I used namedtuple to store each hourly reading so I could access fields like rec.temperature instead of using array indexes.
+   I organized the weather application into separate classes so that each class has one clear responsibility. This makes the program easier to understand, test, maintain, and extend.
 
-I used defaultdict for grouping hourly records by date. It saves time by automatically creating a new list for a date key if it doesn't exist yet.
+   HourlyRecord represents and validates one hourly weather observation.
 
-I used tally to determine how many hours fell under categories like Cool Dry or Precipitation without having to write extra dictionary loop code.
+   WeatherDataSource retrieves weather information from the API.
 
-I used deque with maxlen=5 so I could easily keep a rolling buffer of only the 5 most recent weather readings without manually trimming a list.
+   Aggregation provides a common interface for weather calculations.
+
+   ReportBuilder combines the calculated results and exports them to JSON.
+
+   This approach follows the Single Responsibility Principle because each class focuses on a specific part of the application's functionality.
+
+
+   ### Why I used inheritance
+
+   I created an abstract base class named Aggregation because the weather application performs several different calculations on the same collection of hourly records.
+
+   The subclasses DailyTemperatureAggregation, ConditionCountAggregation, and RecentReadingsAggregation inherit from Aggregation.
+
+   Each subclass implements the shared compute() method differently.
+
+   Inheritance establishes a consistent interface for all aggregation operations, avoids duplicating their execution logic, and makes adding new aggregation types easier.
+
+
+   ### Why I used polymorphism
+
+   Polymorphism allows different aggregation objects to be treated through the same Aggregation interface.
+
+   In the refactored ReportBuilder, aggregation objects are stored in a list and executed through a common loop:
+
+   for aggregation in self.aggregations:
+       results[type(aggregation).__name__] = (
+           aggregation.compute(self.records)
+       )
+
+   Python automatically executes the appropriate subclass implementation of compute().
+
+   This design reduces repetitive method calls and allows aggregation strategies to be managed consistently.
+
+
+   ### Why HourlyRecord validates and cleans its own values
+
+   I designed HourlyRecord to validate its inputs during initialization because weather data obtained from external APIs may contain missing or incorrectly formatted values.
+
+   The constructor checks that required values are present and converts temperature and precipitation values into floating-point numbers.
+
+   If a required value is missing or cannot be converted, the class raises a ValueError.
+
+   Keeping validation inside HourlyRecord ensures that every successfully constructed record follows the same basic data requirements.
+
+   It also prevents the aggregation classes from repeatedly performing the same input validation.
+
+   Invalid observations are skipped by the data-source processing logic instead of being included in weather calculations.
+
+   This design improves data consistency and separates data validation from statistical processing.
+
+
+   ### Why I used defaultdict and Counter
+
+   I used defaultdict in DailyTemperatureAggregation to group hourly observations by date without manually creating a list for each new date.
+
+   I used Counter in ConditionCountAggregation to calculate the number of observations in each weather category.
+
+   These built-in Python tools reduce unnecessary code and make the aggregation logic easier to read.
+
+
+   ### Why I separated API communication from report generation
+
+   I placed HTTP communication inside WeatherDataSource so that the rest of the application does not need to manage API requests directly.
+
+   This separates external data retrieval from business logic and reporting.
+
+   ReportBuilder works with validated weather records instead of HTTP responses. As a result, the reporting functionality can be tested independently using sample records without contacting the weather API.
+
+
 
 
 ## Known limitations
-The API URL is currently hardcoded for Toronto and 7 past days. If I had more time, I'd let the user type in custom city coordinates or select a different date range using command-line arguments.
 
-The temperature categories use hardcoded numbers like 15°C, which might not make sense if you ran this for a location in a completely different season or climate zone.
+   ### Fixed geographical location
+   The application currently retrieves weather data for Toronto, Ontario, using coordinates configured in the source URL.
+
+   Users cannot select a different city or geographical location through the command line.
+
+   A future improvement would allow users to provide custom coordinates or choose from predefined cities.
+
+
+   ### Fixed weather-data period
+
+   The API request is configured to retrieve approximately seven days of hourly observations.
+
+   The application does not currently allow users to select arbitrary start and end dates.
+
+   Future versions could accept a configurable date range.
+
+
+   ### Dependence on an external weather API
+
+   The application depends on the availability and responsiveness of the Open-Meteo API.
+
+   Network outages, connection timeouts, API errors, or unexpected responses may prevent the application from generating a report.
+
+   A future improvement would introduce retry logic with exponential backoff and optional local caching.
+
+
+
+
+   ### Missing or malformed observations
+
+   The application checks for missing or malformed weather values and skips records that cannot be converted into valid HourlyRecord objects.
+
+   Although this prevents invalid observations from entering the calculations, skipping records may produce incomplete daily statistics.
+
+   The application does not currently perform missing-value imputation or report detailed data-quality metrics.
+
+   ### Fixed weather classification thresholds
+
+   Weather categories use fixed temperature and precipitation thresholds.
+
+   For example, dry observations below 0°C are classified as Freezing Dry, while dry observations below 15°C are classified as Cool Dry.
+
+   These thresholds may not be appropriate for every geographical location, climate, or season.
+
+   A future improvement would make the thresholds configurable.
+
+
+   ### Limited output formats
+
+   The application currently exports its summary as a JSON file.
+
+   It does not provide CSV exports, an interactive dashboard, or graphical visualizations.
+
+   Future improvements could include CSV output, Matplotlib charts, or a simple web-based dashboard.
+
+   ### Basic handling of incomplete datasets
+
+   The application requires valid weather observations to generate a meaningful report.
+
+   If no valid daily observations are available, report generation cannot determine the hottest day.
+
+   A future improvement would provide more detailed diagnostics explaining which observations were rejected and why.
+
+   ### No persistent historical database
+   The application retrieves weather observations and creates a summary report, but it does not maintain a historical database of previously downloaded information.
+
+   Each execution processes the weather data retrieved for that run.
+
+   A future version could store historical observations in SQLite or PostgreSQL for long-term comparison and analysis.

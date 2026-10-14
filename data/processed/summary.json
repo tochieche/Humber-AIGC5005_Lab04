@@ -1,88 +1,88 @@
 {
   "source_url": "https://api.open-meteo.com/v1/forecast?latitude=43.65&longitude=-79.38&hourly=temperature_2m,precipitation&past_days=7&forecast_days=0&timezone=America%2FToronto",
   "records_processed": 168,
-  "hottest_day": "2026-10-07",
-  "hottest_day_max_temp_c": 22.2,
+  "hottest_day": "2026-10-13",
+  "hottest_day_max_temp_c": 24.0,
   "daily_breakdown": {
-    "2026-10-01": {
-      "min_temp_c": 17.3,
-      "max_temp_c": 21.5,
-      "avg_temp_c": 19.1,
-      "total_precip_mm": 0.0,
-      "readings": 24
-    },
-    "2026-10-02": {
-      "min_temp_c": 10.3,
-      "max_temp_c": 19.4,
-      "avg_temp_c": 15.5,
-      "total_precip_mm": 10.8,
-      "readings": 24
-    },
-    "2026-10-03": {
-      "min_temp_c": 7.3,
-      "max_temp_c": 16.8,
-      "avg_temp_c": 11.9,
-      "total_precip_mm": 0.0,
-      "readings": 24
-    },
-    "2026-10-04": {
-      "min_temp_c": 10.1,
-      "max_temp_c": 20.8,
-      "avg_temp_c": 14.6,
-      "total_precip_mm": 0.0,
-      "readings": 24
-    },
-    "2026-10-05": {
-      "min_temp_c": 7.2,
-      "max_temp_c": 17.0,
-      "avg_temp_c": 12.2,
-      "total_precip_mm": 0.0,
-      "readings": 24
-    },
-    "2026-10-06": {
-      "min_temp_c": 3.0,
-      "max_temp_c": 14.1,
-      "avg_temp_c": 9.5,
-      "total_precip_mm": 0.0,
-      "readings": 24
-    },
     "2026-10-07": {
       "min_temp_c": 13.1,
       "max_temp_c": 22.2,
       "avg_temp_c": 17.0,
       "total_precip_mm": 0.4,
       "readings": 24
+    },
+    "2026-10-08": {
+      "min_temp_c": 9.3,
+      "max_temp_c": 19.5,
+      "avg_temp_c": 13.9,
+      "total_precip_mm": 0.0,
+      "readings": 24
+    },
+    "2026-10-09": {
+      "min_temp_c": 7.5,
+      "max_temp_c": 20.9,
+      "avg_temp_c": 13.2,
+      "total_precip_mm": 0.0,
+      "readings": 24
+    },
+    "2026-10-10": {
+      "min_temp_c": 5.8,
+      "max_temp_c": 15.4,
+      "avg_temp_c": 11.2,
+      "total_precip_mm": 0.0,
+      "readings": 24
+    },
+    "2026-10-11": {
+      "min_temp_c": 11.7,
+      "max_temp_c": 16.7,
+      "avg_temp_c": 14.0,
+      "total_precip_mm": 7.6,
+      "readings": 24
+    },
+    "2026-10-12": {
+      "min_temp_c": 14.0,
+      "max_temp_c": 20.4,
+      "avg_temp_c": 16.4,
+      "total_precip_mm": 0.0,
+      "readings": 24
+    },
+    "2026-10-13": {
+      "min_temp_c": 14.9,
+      "max_temp_c": 24.0,
+      "avg_temp_c": 19.3,
+      "total_precip_mm": 4.4,
+      "readings": 24
     }
   },
   "condition_counts": {
-    "Warm Dry": 71,
-    "Precipitation": 8,
-    "Cool Dry": 89
+    "Cool Dry": 85,
+    "Warm Dry": 77,
+    "Precipitation": 6
   },
   "recent_readings": [
     {
-      "timestamp": "2026-10-07T19:00",
-      "temperature_c": 20.0,
+      "timestamp": "2026-10-13T19:00",
+      "temperature_c": 21.2,
       "precipitation_mm": 0.0
     },
     {
-      "timestamp": "2026-10-07T20:00",
-      "temperature_c": 19.3,
+      "timestamp": "2026-10-13T20:00",
+      "temperature_c": 21.5,
       "precipitation_mm": 0.0
     },
     {
-      "timestamp": "2026-10-07T21:00",
+      "timestamp": "2026-10-13T21:00",
+      "temperature_c": 21.3,
+      "precipitation_mm": 0.0
+    },
+    {
+      "timestamp": "2026-10-13T22:00",
+      "temperature_c": 19.6,
+      "precipitation_mm": 0.0
+    },
+    {
+      "timestamp": "2026-10-13T23:00",
       "temperature_c": 18.2,
-      "precipitation_mm": 0.0
-    },
-    {
-      "timestamp": "2026-10-07T22:00",
-      "temperature_c": 16.1,
-      "precipitation_mm": 0.4
-    },
-    {
-      "timestamp": "2026-10-07T23:00",
-      "temperature_c": 15.1,
       "precipitation_mm": 0.0
     }
   ]
