@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 
 class HourlyRecord:
     """Represent a validated hourly weather observation.
@@ -51,3 +52,25 @@ class HourlyRecord:
             f"temp={self.temperature}°C, "
             f"precip={self.precipitation}mm)"
         )
+
+
+
+
+@dataclass(frozen=True)
+class ShowRecord:
+    """Represent one validated television-show record."""
+
+    name: str
+    genres: tuple[str, ...]
+    rating: float
+
+    def __post_init__(self) -> None:
+        """Validate the show name, genres, and rating."""
+        if not self.name.strip():
+            raise ValueError("Show name is required")
+
+        if not self.genres:
+            raise ValueError("Genre list is required")
+
+        if not 0 <= self.rating <= 10:
+            raise ValueError("Rating must be between 0 and 10")
