@@ -10,7 +10,9 @@ from .aggregations import (
     ConditionCountAggregation,
     RecentReadingsAggregation,
 )
+import logging
 
+logger = logging.getLogger(__name__)
 
 class ReportBuilder:
     """Generate weather reports using a collection of aggregations.
@@ -68,7 +70,8 @@ class ReportBuilder:
             daily_stats,
             key=lambda d: daily_stats[d]["max_temp_c"]
         )
-
+        logger.info("Starting report generation")
+        logger.debug("Processed %s records", len(self.records))
         return {
             "source_url": SOURCE_URL,
             "records_processed": len(self.records),

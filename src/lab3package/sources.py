@@ -3,7 +3,9 @@ import requests
 
 from .config import SOURCE_URL, TIMEOUT
 from .models import HourlyRecord
+import logging
 
+logger = logging.getLogger(__name__)
 
 class DataSourceError(Exception):
     """Raised when weather data cannot be downloaded or decoded."""
@@ -29,6 +31,8 @@ class WeatherDataSource:
         """
         self.url = url
         self.timeout = timeout
+    
+    
 
     def fetch(self):
         """Download and validate hourly weather observations.
@@ -58,7 +62,9 @@ class WeatherDataSource:
             )
             response.raise_for_status()
             payload = response.json()
+            logger.info("Starting weather data download")
 
+            
         except (requests.RequestException, ValueError) as err:
             raise DataSourceError(
                 f"Unable to retrieve weather data: {err}"

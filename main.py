@@ -25,6 +25,7 @@ def main():
 
     except DataSourceError as err:
         sys.exit(f"Error: Download failed from source API. {err}")
+        logger.error("Application failed: %s", error)
 
     if not records:
         sys.exit("Error: No valid records retrieved.")
