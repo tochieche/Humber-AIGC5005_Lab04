@@ -58,19 +58,31 @@ class HourlyRecord:
 
 @dataclass(frozen=True)
 class ShowRecord:
-    """Represent one validated television-show record."""
+    """Represent a validated television show record.
+
+    Ensures that the show has a valid name, at least one
+    genre, and a rating between 0 and 10.
+    """
 
     name: str
-    genres: tuple[str, ...]
-    rating: float
+    genres: tuple[str, ...] | None
+    rating: float | None
 
     def __post_init__(self) -> None:
-        """Validate the show name, genres, and rating."""
+        """Validate required show information.
+
+        Raises:
+            ValueError: If the name, genres, or rating
+                is missing or invalid.
+        """
         if not self.name.strip():
             raise ValueError("Show name is required")
 
         if not self.genres:
             raise ValueError("Genre list is required")
+
+        if self.rating is None:
+            raise ValueError("Rating is required")
 
         if not 0 <= self.rating <= 10:
             raise ValueError("Rating must be between 0 and 10")

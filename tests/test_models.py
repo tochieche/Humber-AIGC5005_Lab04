@@ -49,15 +49,32 @@ def test_invalid_temperature() -> None:
 
 
 def test_missing_genre_list() -> None:
-    """Reject a show without genres."""
-    with pytest.raises(ValueError, match="Genre list"):
-        ShowRecord("Sample Show", (), 8.0)
+    """Verify that an empty genre list raises ValueError."""
+    with pytest.raises(ValueError, match="Genre list is required"):
+        ShowRecord(
+            name="Sample Show",
+            genres=(),
+            rating=8.0,
+        )
 
 
 def test_missing_rating() -> None:
-    """Reject a show without a rating."""
-    with pytest.raises(
-        (TypeError, ValueError),
-        match="Rating|NoneType|not supported",
-    ):
-        ShowRecord("Sample Show", ("Drama",), None)
+    """Verify that a missing rating raises ValueError."""
+    with pytest.raises(ValueError, match="Rating is required"):
+        ShowRecord(
+            name="Sample Show",
+            genres=("Drama",),
+            rating=None,
+        )
+
+def test_valid_show_record() -> None:
+    """Verify that valid show information is accepted."""
+    show = ShowRecord(
+        name="Sample Show",
+        genres=("Drama", "Comedy"),
+        rating=8.5,
+    )
+
+    assert show.name == "Sample Show"
+    assert show.rating == 8.5
+    assert show.genres == ("Drama", "Comedy")
