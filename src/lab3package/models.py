@@ -10,7 +10,12 @@ class HourlyRecord:
     numeric inputs to floating-point numbers.
     """
 
-    def __init__(self, timestamp, temperature, precipitation):
+    def __init__(
+        self,
+        timestamp: str | None,
+        temperature: float | str | None,
+        precipitation: float | str | None,
+    ) -> None:
         """Initialize and validate an hourly weather record.
 
         Args:
@@ -40,7 +45,7 @@ class HourlyRecord:
                 f"Invalid malformed data types: {e}"
             ) from e
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a readable string describing the observation.
 
         Returns:

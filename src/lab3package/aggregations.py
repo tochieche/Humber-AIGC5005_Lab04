@@ -3,7 +3,13 @@
 
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
-from typing import Any
+from typing import TypeAlias
+
+AggregationResult: TypeAlias = (
+    dict[str, dict[str, float | int]]
+    | dict[str, int]
+    | list[dict[str, str | float]]
+)
 
 
 class Aggregation(ABC):
@@ -35,7 +41,12 @@ class DailyTemperatureAggregation(Aggregation):
     temperature, total precipitation, and record count.
     """
 
-    def compute(self, records) -> dict[str, dict[str, float | int]]:
+     @abstractmethod
+    def compute(
+        self,
+        records: list[HourlyRecord],
+    ) -> AggregationResult:
+        """Return the calculated weather aggregation."""
         """Aggregate hourly observations into daily statistics.
 
         Args:

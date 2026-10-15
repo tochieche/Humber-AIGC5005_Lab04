@@ -17,8 +17,8 @@ package-dir = {"" = "src"}
 
 [tool.mypy]
 python_version = "3.11"
-files = ["src/lab3package"]
 disallow_untyped_defs = true
-check_untyped_defs = true
 warn_unused_ignores = true
+check_untyped_defs = true
 show_error_codes = true
+files = ["src/lab3package"]
