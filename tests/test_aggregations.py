@@ -1,4 +1,3 @@
-
 """Tests for weather aggregation strategies."""
 
 from lab3package.aggregations import (

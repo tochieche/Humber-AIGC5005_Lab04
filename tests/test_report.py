@@ -1,4 +1,3 @@
-
 """Tests for report output files."""
 
 import json

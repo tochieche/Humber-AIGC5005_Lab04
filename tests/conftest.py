@@ -1,4 +1,3 @@
-
 """Shared fixtures for the Lab 04 test suite."""
 
 import pytest

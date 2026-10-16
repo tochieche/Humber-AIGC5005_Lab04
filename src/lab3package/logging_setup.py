@@ -1,17 +1,17 @@
 """Configure application-wide logging."""
 
 import logging
+import sys
 
 
 def configure_logging(level: str) -> None:
-    """Configure the application logging level and format."""
-    numeric_level = logging.getLevelNamesMapping().get(level.upper())
-
-    if numeric_level is None:
-        raise ValueError(f"Invalid logging level: {level}")
-
+    """Configure a single consistent logging format and level."""
+    numeric = logging.getLevelNamesMapping().get(level.upper())
+    if numeric is None:
+        raise ValueError("Invalid logging level")
     logging.basicConfig(
-        level=numeric_level,
+        level=numeric,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        stream=sys.stdout,
         force=True,
     )

@@ -1,19 +1,20 @@
-from .models import HourlyRecord
-from .sources import WeatherDataSource
 from .aggregations import (
     Aggregation,
-    DailyTemperatureAggregation,
     ConditionCountAggregation,
+    DailyTemperatureAggregation,
     RecentReadingsAggregation,
 )
+from .models import HourlyRecord, ShowRecord
 from .report import ReportBuilder
+from .sources import WeatherDataSource
 
 __all__ = [
-    "HourlyRecord",
-    "WeatherDataSource",
     "Aggregation",
-    "DailyTemperatureAggregation",
     "ConditionCountAggregation",
+    "DailyTemperatureAggregation",
+    "HourlyRecord",
     "RecentReadingsAggregation",
     "ReportBuilder",
+    "ShowRecord",
+    "WeatherDataSource",
 ]

@@ -4,21 +4,33 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lab3package"
-version = "0.1.0"
-description = "Humber-AIGC5005_Lab03"
+version = "0.2.0"
+description = "Humber AIGC5005 Lab 04 weather reporting package"
 requires-python = ">=3.11"
-
-dependencies = [
-     "requests==2.32.3,<3.0.0"
-]
+dependencies = ["requests==2.32.3"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+lab3package = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra"
+
 [tool.mypy]
 python_version = "3.11"
-disallow_untyped_defs = true
-warn_unused_ignores = true
-check_untyped_defs = true
-show_error_codes = true
 files = ["src/lab3package"]
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+show_error_codes = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88

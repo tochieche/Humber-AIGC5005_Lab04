@@ -1,160 +1,81 @@
-
-"""Provide aggregation strategies for hourly weather observations."""
+"""Polymorphic weather aggregation strategies."""
 
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
-from typing import TypeAlias
 
-AggregationResult: TypeAlias = (
-    dict[str, dict[str, float | int]]
-    | dict[str, int]
-    | list[dict[str, str | float]]
-)
+from .models import HourlyRecord
+
+DailyStats = dict[str, dict[str, float | int]]
+RecentStats = list[dict[str, str | float]]
+AggregationResult = DailyStats | dict[str, int] | RecentStats
 
 
 class Aggregation(ABC):
-    """Define the common interface for weather aggregations.
-
-    Subclasses implement the compute method to perform
-    a specific calculation on hourly weather records.
-    """
+    """Common interface for hourly weather aggregations."""
 
     @abstractmethod
-    def compute(self, records) -> Any:
-        """Compute statistics from hourly weather records.
-
-        Args:
-            records: Collection of HourlyRecord objects.
-
-        Returns:
-            Any: Aggregation results determined by
-                the implementing subclass.
-        """
-        pass
+    def compute(self, records: list[HourlyRecord]) -> AggregationResult:
+        """Compute statistics from weather observations."""
+        ...
 
 
 class DailyTemperatureAggregation(Aggregation):
-    """Calculate daily temperature and precipitation statistics.
+    """Group readings by day and calculate daily weather statistics."""
 
-    Groups hourly observations by calendar date and
-    calculates daily minimum, maximum, and average
-    temperature, total precipitation, and record count.
-    """
-
-     @abstractmethod
-    def compute(
-        self,
-        records: list[HourlyRecord],
-    ) -> AggregationResult:
-        """Return the calculated weather aggregation."""
-        """Aggregate hourly observations into daily statistics.
-
-        Args:
-            records: Collection of HourlyRecord objects.
-
-        Returns:
-            dict: Mapping of dates to daily statistics,
-                including temperature, precipitation,
-                and number of readings.
-        """
-        grouped = defaultdict(list)
-
-        for rec in records:
-            date_str = rec.timestamp.split("T")[0]
-            grouped[date_str].append(rec)
-
+    def compute(self, records: list[HourlyRecord]) -> DailyStats:
+        """Return minima, maxima, means, rainfall totals, and counts."""
+        grouped: dict[str, list[HourlyRecord]] = defaultdict(list)
+        for record in records:
+            grouped[record.timestamp.split("T")[0]].append(record)
         return {
-            date: {
-                "min_temp_c": round(
-                    min(r.temperature for r in day_recs), 1
-                ),
-                "max_temp_c": round(
-                    max(r.temperature for r in day_recs), 1
-                ),
+            day: {
+                "min_temp_c": round(min(r.temperature for r in day_records), 1),
+                "max_temp_c": round(max(r.temperature for r in day_records), 1),
                 "avg_temp_c": round(
-                    sum(r.temperature for r in day_recs)
-                    / len(day_recs), 1
+                    sum(r.temperature for r in day_records) / len(day_records), 1
                 ),
-                "total_precip_mm": round(
-                    sum(r.precipitation for r in day_recs), 1
-                ),
-                "readings": len(day_recs),
+                "total_precip_mm": round(sum(r.precipitation for r in day_records), 1),
+                "readings": len(day_records),
             }
-            for date, day_recs in grouped.items()
+            for day, day_records in grouped.items()
         }
 
 
 class ConditionCountAggregation(Aggregation):
-    """Classify and count weather conditions.
+    """Count observations in simple weather-condition categories."""
 
-    Categorizes hourly records as Precipitation,
-    Freezing Dry, Cool Dry, or Warm Dry according
-    to precipitation and temperature measurements.
-    """
-
-    def compute(self, records) -> dict[str, int]:
-        """Count observations in each weather category.
-
-        Args:
-            records: Collection of HourlyRecord objects.
-
-        Returns:
-            dict[str, int]: Weather category names mapped
-                to their observation counts.
-        """
-        conditions = []
-
-        for rec in records:
-            if rec.precipitation > 0.0:
+    def compute(self, records: list[HourlyRecord]) -> dict[str, int]:
+        """Classify each hourly observation and count the categories."""
+        conditions: list[str] = []
+        for record in records:
+            if record.precipitation > 0:
                 conditions.append("Precipitation")
-            elif rec.temperature < 0.0:
+            elif record.temperature < 0:
                 conditions.append("Freezing Dry")
-            elif rec.temperature < 15.0:
+            elif record.temperature < 15:
                 conditions.append("Cool Dry")
             else:
                 conditions.append("Warm Dry")
-
         return dict(Counter(conditions))
 
 
 class RecentReadingsAggregation(Aggregation):
-    """Retrieve the most recent hourly weather observations.
+    """Return the latest observations in a JSON-ready representation."""
 
-    Limits the returned observations to a configurable
-    number and formats each record as a dictionary.
-    """
-
-    def __init__(self, count=5):
-        """Initialize the recent observation limit.
-
-        Args:
-            count (int): Number of recent observations
-                to include. Defaults to five.
-        """
+    def __init__(self, count: int = 5) -> None:
+        """Set the maximum number of recent observations."""
+        if count < 0:
+            raise ValueError("Recent readings count cannot be negative")
         self.count = count
 
-    def compute(self, records) -> list[dict[str, Any]]:
-        """Return the most recent weather observations.
-
-        Args:
-            records: Chronologically ordered collection
-                of HourlyRecord objects.
-
-        Returns:
-            list[dict]: Recent observations containing
-                timestamp, temperature, and precipitation.
-        """
-        recent = (
-            records[-self.count:]
-            if len(records) >= self.count
-            else records
-        )
-
+    def compute(self, records: list[HourlyRecord]) -> RecentStats:
+        """Return no more than count chronological readings."""
+        recent = records[-self.count :] if self.count else []
         return [
             {
-                "timestamp": r.timestamp,
-                "temperature_c": r.temperature,
-                "precipitation_mm": r.precipitation,
+                "timestamp": record.timestamp,
+                "temperature_c": record.temperature,
+                "precipitation_mm": record.precipitation,
             }
-            for r in recent
+            for record in recent
         ]

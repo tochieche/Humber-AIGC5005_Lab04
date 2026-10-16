@@ -1,106 +1,125 @@
-
-"""Build and export JSON weather reports using polymorphic aggregations."""
+"""Polymorphic weather report and reproducibility metadata."""
 
 import json
+import logging
+import platform
+import random
+from dataclasses import asdict
+from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
+from typing import TypedDict, cast
 
-from .config import SOURCE_URL, OUTPUT_PATH
 from .aggregations import (
     Aggregation,
-    DailyTemperatureAggregation,
     ConditionCountAggregation,
+    DailyStats,
+    DailyTemperatureAggregation,
     RecentReadingsAggregation,
+    RecentStats,
 )
-import logging
+from .config import Settings
+from .errors import ReportError
+from .models import HourlyRecord
 
 logger = logging.getLogger(__name__)
 
+
+class Summary(TypedDict):
+    """Schema for the generated JSON weather report."""
+
+    source_url: str
+    records_processed: int
+    hottest_day: str
+    hottest_day_max_temp_c: float | int
+    daily_breakdown: DailyStats
+    condition_counts: dict[str, int]
+    recent_readings: RecentStats
+    featured_shows: list[str]
+
+
+def installed_version(name: str) -> str:
+    """Return package metadata version or a missing-package marker."""
+    try:
+        return version(name)
+    except PackageNotFoundError:
+        return "not installed"
+
+
 class ReportBuilder:
-    """Generate weather reports using a collection of aggregations.
+    """Run aggregations using their common compute interface."""
 
-    Each aggregation inherits from Aggregation and implements
-    the compute() method. ReportBuilder executes all aggregation
-    objects polymorphically through the shared interface.
-    """
-
-    def __init__(self, records):
-        """Initialize the report builder and its aggregations.
-
-        Args:
-            records: Validated HourlyRecord objects to summarize.
-        """
+    def __init__(
+        self,
+        records: list[HourlyRecord],
+        settings: Settings | None = None,
+    ) -> None:
+        """Store validated records and create the aggregation objects once."""
         self.records = records
-
+        self.settings = settings
         self.aggregations: list[Aggregation] = [
             DailyTemperatureAggregation(),
             ConditionCountAggregation(),
             RecentReadingsAggregation(count=5),
         ]
 
-    def build(self):
-        """Execute each aggregation and construct the report.
-
-        Iterates through the list of Aggregation objects and
-        calls compute() on each, allowing Python to dispatch
-        the call to the appropriate subclass implementation.
-
-        Returns:
-            dict: Weather summary containing daily statistics,
-                condition counts, and recent observations.
-
-        Raises:
-            ValueError: If no daily weather statistics exist.
-        """
-        results = {}
-
-        for aggregation in self.aggregations:
-            results[type(aggregation).__name__] = (
-                aggregation.compute(self.records)
-            )
-
-        daily_stats = results["DailyTemperatureAggregation"]
-        condition_counts = results["ConditionCountAggregation"]
-        recent_readings = results["RecentReadingsAggregation"]
-
-        if not daily_stats:
-            raise ValueError(
-                "Cannot build a weather report without valid daily data."
-            )
-
-        hottest_day = max(
-            daily_stats,
-            key=lambda d: daily_stats[d]["max_temp_c"]
-        )
+    def build(self) -> Summary:
+        """Execute aggregation objects polymorphically and build a summary."""
         logger.info("Starting report generation")
         logger.debug("Processed %s records", len(self.records))
+        results = {
+            type(aggregation).__name__: aggregation.compute(self.records)
+            for aggregation in self.aggregations
+        }
+        daily = cast("DailyStats", results["DailyTemperatureAggregation"])
+        conditions = cast("dict[str, int]", results["ConditionCountAggregation"])
+        recent = cast("RecentStats", results["RecentReadingsAggregation"])
+        if not daily:
+            raise ReportError("Cannot build a weather report without valid daily data")
+        hottest = max(daily, key=lambda date: daily[date]["max_temp_c"])
+        shows: list[str] = []
+        if self.settings is not None:
+            shows = random.Random(self.settings.seed).sample(
+                list(self.settings.show_names), self.settings.sample_size
+            )
         return {
-            "source_url": SOURCE_URL,
+            "source_url": self.settings.source_url if self.settings else "",
             "records_processed": len(self.records),
-            "hottest_day": hottest_day,
-            "hottest_day_max_temp_c": daily_stats[
-                hottest_day
-            ]["max_temp_c"],
-            "daily_breakdown": daily_stats,
-            "condition_counts": condition_counts,
-            "recent_readings": recent_readings,
+            "hottest_day": hottest,
+            "hottest_day_max_temp_c": daily[hottest]["max_temp_c"],
+            "daily_breakdown": daily,
+            "condition_counts": conditions,
+            "recent_readings": recent,
+            "featured_shows": shows,
         }
 
-    def write(self, path=OUTPUT_PATH):
-        """Write the generated weather summary to a JSON file.
-
-        Args:
-            path: Destination Path for the JSON report.
-
-        Returns:
-            dict: The generated report summary.
-
-        Raises:
-            OSError: If the report cannot be written.
-        """
+    def write(self, path: Path) -> Summary:
+        """Write JSON weather summary, translating filesystem errors."""
         summary = self.build()
-
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2)
-
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+        except OSError as error:
+            raise ReportError(f"Cannot write summary: {path}") from error
         return summary
+
+    def write_run_info(self, folder: Path) -> Path:
+        """Write settings, Python version and tooling versions beside the report."""
+        if self.settings is None:
+            raise ReportError("Settings required for run metadata")
+        data = {
+            "settings": {
+                **asdict(self.settings),
+                "output_folder": str(self.settings.output_folder),
+            },
+            "python_version": platform.python_version(),
+            "tool_versions": {
+                name: installed_version(name) for name in ("pytest", "mypy", "ruff")
+            },
+        }
+        path = folder / "run_info.json"
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        except OSError as error:
+            raise ReportError(f"Cannot write run_info.json: {path}") from error
+        return path

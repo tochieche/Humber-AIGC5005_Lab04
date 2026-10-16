@@ -1,9 +1,8 @@
-
 """Tests for weather record validation."""
 
 import pytest
-from lab3package.models import HourlyRecord
-from lab3package.models import ShowRecord
+
+from lab3package.models import HourlyRecord, ShowRecord
 
 
 def test_valid_record() -> None:
@@ -47,7 +46,6 @@ def test_invalid_temperature() -> None:
         HourlyRecord("2026-10-14T09:00", "invalid", 0.0)
 
 
-
 def test_missing_genre_list() -> None:
     """Verify that an empty genre list raises ValueError."""
     with pytest.raises(ValueError, match="Genre list is required"):
@@ -66,6 +64,7 @@ def test_missing_rating() -> None:
             genres=("Drama",),
             rating=None,
         )
+
 
 def test_valid_show_record() -> None:
     """Verify that valid show information is accepted."""

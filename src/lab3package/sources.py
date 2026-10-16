@@ -1,95 +1,57 @@
+"""Weather API access; the only package module importing requests."""
+
+import logging
 
 import requests
 
-from .config import SOURCE_URL, TIMEOUT
+from .errors import DownloadError, ResponseFormatError
 from .models import HourlyRecord
-import logging
 
 logger = logging.getLogger(__name__)
-
-class DataSourceError(Exception):
-    """Raised when weather data cannot be downloaded or decoded."""
+DataSourceError = DownloadError
 
 
 class WeatherDataSource:
-    """Retrieve and parse hourly weather observations.
+    """Download Open-Meteo hourly observations and validate records."""
 
-    This class manages communication with the weather API
-    and converts valid response entries into HourlyRecord
-    objects.
-
-    Invalid hourly observations are excluded.
-    """
-
-    def __init__(self, url=SOURCE_URL, timeout=TIMEOUT):
-        """Configure the weather API data source.
-
-        Args:
-            url (str): API endpoint used to retrieve data.
-            timeout (int | float): Maximum request duration
-                in seconds.
-        """
+    def __init__(self, url: str = "", timeout: float = 15) -> None:
+        """Set the URL and HTTP timeout."""
         self.url = url
         self.timeout = timeout
-    
-    
 
-    def fetch(self):
-        """Download and validate hourly weather observations.
-
-        The method requests weather data, extracts the
-        hourly timestamps, temperatures, and precipitation
-        values, and creates HourlyRecord objects.
-
-        Records containing missing or malformed values
-        are skipped.
-
-        Returns:
-            list[HourlyRecord]: Valid hourly observations
-                retrieved from the API.
-
-        Raises:
-            DataSourceError: If the API request fails or
-                the response cannot be decoded, when using
-                the custom error handling from the
-                previous correction.
-        """
-
+    def fetch(self) -> list[HourlyRecord]:
+        """Return valid observations or raise a package-specific exception."""
+        logger.info("Starting weather data download")
         try:
-            response = requests.get(
-                self.url,
-                timeout=self.timeout
-            )
+            response = requests.get(self.url, timeout=self.timeout)
             response.raise_for_status()
+        except requests.RequestException as error:
+            raise DownloadError("Unable to download weather observations") from error
+        try:
             payload = response.json()
-            logger.info("Starting weather data download")
-
-            
-        except (requests.RequestException, ValueError) as err:
-            raise DataSourceError(
-                f"Unable to retrieve weather data: {err}"
-            ) from err
-
-        hourly = payload.get("hourly", {})
-
-        timestamps = hourly.get("time", [])
-        temperatures = hourly.get("temperature_2m", [])
-        precipitations = hourly.get("precipitation", [])
-
-        records = []
-
-        for ts, temp, precip in zip(
-            timestamps,
-            temperatures,
-            precipitations
+        except ValueError as error:
+            raise ResponseFormatError("Invalid JSON response") from error
+        if not isinstance(payload, dict) or not isinstance(payload.get("hourly"), dict):
+            raise ResponseFormatError("Missing or invalid hourly data")
+        hourly = payload["hourly"]
+        keys = ("time", "temperature_2m", "precipitation")
+        arrays = [hourly.get(key) for key in keys]
+        if not all(isinstance(values, list) for values in arrays):
+            raise ResponseFormatError("Missing hourly response arrays")
+        times, temperatures, precipitation = arrays
+        if not len(times) == len(temperatures) == len(precipitation):
+            raise ResponseFormatError("Hourly arrays must have equal lengths")
+        logger.debug("Received %s hourly observations", len(times))
+        records: list[HourlyRecord] = []
+        for timestamp, temp, precip in zip(
+            times, temperatures, precipitation, strict=True
         ):
-            if ts is None or temp is None or precip is None:
-                continue
-
             try:
-                record = HourlyRecord(ts, temp, precip)
-                records.append(record)
-            except ValueError:
-                continue
-
+                if not isinstance(timestamp, str):
+                    raise ValueError("Invalid timestamp")
+                records.append(HourlyRecord(timestamp, temp, precip))
+            except (ValueError, TypeError) as error:
+                logger.warning(
+                    "Skipping invalid observation at %s: %s", timestamp, error
+                )
         return records
