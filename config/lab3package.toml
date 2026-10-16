@@ -1,7 +1,8 @@
 [app]
 source_url = "https://api.open-meteo.com/v1/forecast?latitude=43.65&longitude=-79.38&hourly=temperature_2m,precipitation&past_days=7&forecast_days=0&timezone=America%2FToronto"
 
-
-
 [shows]
 names = ["Northern Lights", "City Stories", "Wild Horizons", "Mystery House", "Science Today"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
